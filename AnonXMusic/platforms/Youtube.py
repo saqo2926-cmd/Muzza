@@ -460,7 +460,7 @@ class YouTubeAPI:
                     return None
                     
             except Exception as e:
-                logger.error(f"yt_dlp audio download failed: {str(e)}")
+                logger.error(f"yt_dlp audio download failed for {vid_id}: {str(e)}")
                 return None
         
         
@@ -500,7 +500,7 @@ class YouTubeAPI:
                     return None
                     
             except Exception as e:
-                logger.error(f"yt_dlp video download failed: {str(e)}")
+                logger.error(f"yt_dlp video download failed for {vid_id}: {str(e)}")
                 return None
         
         async def song_video_dl():
@@ -539,7 +539,7 @@ class YouTubeAPI:
                     return None
                     
             except Exception as e:
-                logger.error(f"yt_dlp song video download failed: {str(e)}")
+                logger.error(f"yt_dlp song video download failed for {vid_id}: {str(e)}")
                 return None
 
         async def song_audio_dl():
@@ -583,7 +583,7 @@ class YouTubeAPI:
                     return None
                     
             except Exception as e:
-                logger.error(f"yt_dlp song audio download failed: {str(e)}")
+                logger.error(f"yt_dlp song audio download failed for {vid_id}: {str(e)}")
                 return None
 
         if songvideo:
