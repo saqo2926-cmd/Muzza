@@ -20,6 +20,8 @@ from strings import get_string, helpers
 
 async def fetch_tts_models():
     """Fetch TTS models from the API"""
+    if not YTPROXY_URL:
+        return []
     try:
         async with aiohttp.ClientSession() as session:
             async with session.get(f"{YTPROXY_URL}/tts/models") as response:
@@ -34,6 +36,8 @@ async def fetch_tts_models():
 
 async def fetch_image_models():
     """Fetch image models from the API"""
+    if not YTPROXY_URL:
+        return []
     try:
         async with aiohttp.ClientSession() as session:
             async with session.get(f"{YTPROXY_URL}/image/models") as response:
@@ -48,6 +52,8 @@ async def fetch_image_models():
 
 async def fetch_ai_models():
     """Fetch AI models from the API"""
+    if not YTPROXY_URL:
+        return []
     try:
         async with aiohttp.ClientSession() as session:
             async with session.get(f"{YTPROXY_URL}/ai/models") as response:
@@ -163,7 +169,8 @@ async def helper_cb(client, CallbackQuery:CallbackQuery, _):
                 )
             ]
         ]
-        await CallbackQuery.edit_message_text(f"AI, TTS and Image Model Settings \n\n[Check Docs here]({YTPROXY_URL}/docs)", reply_markup=InlineKeyboardMarkup(btn),parse_mode=ParseMode.DEFAULT)
+        docs_link = f"{YTPROXY_URL}/docs" if YTPROXY_URL else "https://github.com/sqenaah/Muzza"
+        await CallbackQuery.edit_message_text(f"AI, TTS and Image Model Settings \n\n[Check Docs here]({docs_link})", reply_markup=InlineKeyboardMarkup(btn),parse_mode=ParseMode.DEFAULT)
     elif cb == "hb17":
         model_settings = await get_model_settings()
         current_tts = model_settings.get("tts", "athena")

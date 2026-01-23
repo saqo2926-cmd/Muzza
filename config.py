@@ -17,7 +17,7 @@ BOT_TOKEN = getenv("BOT_TOKEN", "8053952504:AAH_Iq1sK62TnXowhRjN8anv8Jz-eAJtK14"
 MONGO_DB_URI = getenv("MONGO_DB_URI", "mongodb://mongo:bBlGbsiXVMUFsiXTYOEXuGAnEHfCbNyn@mongodb.railway.internal:27017/armedmusic?authSource=admin")
 
 # Vars For API End Pont.
-YTPROXY_URL = getenv("YTPROXY_URL", 'https://tgapi.xbitcode.com') ## xBit Music Endpoint.
+YTPROXY_URL = getenv("YTPROXY_URL", None) ## xBit Music Endpoint. Set to None to disable AI features
 YT_API_KEY = getenv("YT_API_KEY" , "AIzaSyAyFW-9snpxGwFa5cu-p81jjE8Fg1h_6rk" ) ## Your API key like: xbit_10000000xx0233 Get from  https://t.me/tgmusic_apibot
 
 ## Other vaes
