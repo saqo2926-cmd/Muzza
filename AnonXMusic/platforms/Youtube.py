@@ -18,7 +18,7 @@ import base64
 from AnonXMusic import LOGGER
 from AnonXMusic.utils.database import is_on_off
 from AnonXMusic.utils.formatters import time_to_seconds
-from config import YT_API_KEY, YTPROXY_URL as YTPROXY
+from config import YT_API_KEY, YTPROXY_URL as YTPROXY, YOUTUBE_PROXY
 
 logger = LOGGER(__name__)
 
@@ -39,11 +39,11 @@ def cookie_txt_file():
 
 async def check_file_size(link):
     async def get_format_info(link):
+        cmd = ["yt-dlp", "--cookies", cookie_txt_file(), "-J", link]
+        if YOUTUBE_PROXY:
+            cmd.extend(["--proxy", YOUTUBE_PROXY])
         proc = await asyncio.create_subprocess_exec(
-            "yt-dlp",
-            "--cookies", cookie_txt_file(),
-            "-J",
-            link,
+            *cmd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE
         )
@@ -459,6 +459,9 @@ class YouTubeAPI:
                     'skip_unavailable_fragments': True,
                 }
                 
+                if YOUTUBE_PROXY:
+                    ydl_opts['proxy'] = YOUTUBE_PROXY
+                
                 loop = asyncio.get_running_loop()
                 with ThreadPoolExecutor() as executor:
                     await loop.run_in_executor(executor, lambda: yt_dlp.YoutubeDL(ydl_opts).download([f'https://www.youtube.com/watch?v={vid_id}']))
@@ -492,6 +495,9 @@ class YouTubeAPI:
                     'skip_unavailable_fragments': True,
                 }
                 
+                if YOUTUBE_PROXY:
+                    ydl_opts['proxy'] = YOUTUBE_PROXY
+                
                 loop = asyncio.get_running_loop()
                 with ThreadPoolExecutor() as executor:
                     await loop.run_in_executor(executor, lambda: yt_dlp.YoutubeDL(ydl_opts).download([f'https://www.youtube.com/watch?v={vid_id}']))
@@ -523,6 +529,9 @@ class YouTubeAPI:
                     'fragment_retries': 10,
                     'skip_unavailable_fragments': True,
                 }
+                
+                if YOUTUBE_PROXY:
+                    ydl_opts['proxy'] = YOUTUBE_PROXY
                 
                 loop = asyncio.get_running_loop()
                 with ThreadPoolExecutor() as executor:
@@ -560,6 +569,9 @@ class YouTubeAPI:
                     'fragment_retries': 10,
                     'skip_unavailable_fragments': True,
                 }
+                
+                if YOUTUBE_PROXY:
+                    ydl_opts['proxy'] = YOUTUBE_PROXY
                 
                 loop = asyncio.get_running_loop()
                 with ThreadPoolExecutor() as executor:

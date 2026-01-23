@@ -18,6 +18,7 @@ MONGO_DB_URI = getenv("MONGO_DB_URI", "mongodb://mongo:bBlGbsiXVMUFsiXTYOEXuGAnE
 
 # Vars For API End Pont.
 YTPROXY_URL = getenv("YTPROXY_URL", None) ## xBit Music Endpoint. Set to None to disable AI features
+YOUTUBE_PROXY = getenv("YOUTUBE_PROXY", None) ## Proxy for YouTube downloads, e.g. http://proxy_ip:port
 YT_API_KEY = getenv("YT_API_KEY" , "AIzaSyAyFW-9snpxGwFa5cu-p81jjE8Fg1h_6rk" ) ## Your API key like: xbit_10000000xx0233 Get from  https://t.me/tgmusic_apibot
 
 ## Other vaes
