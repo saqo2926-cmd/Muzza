@@ -37,7 +37,8 @@ async def start_pm(client, message: Message, _):
     if len(message.text.split()) > 1:
         name = message.text.split(None, 1)[1]
         if name[0:4] == "help":
-            keyboard = help_pannel(_)
+            is_sudo = message.from_user.id in SUDOERS
+            keyboard = help_pannel(_, is_sudo)
             return await message.reply_photo(
                 photo=random.choice(config.START_IMG_URL),
                 caption=_["help_1"],
