@@ -40,17 +40,11 @@ async def stream(
             if int(count) == config.PLAYLIST_FETCH_LIMIT:
                 continue
             try:
-                (
-                    title,
-                    duration_min,
-                    duration_sec,
-                    thumbnail,
-                    vidid,
-            await app.send_message(
-                chat_id=original_chat_id,
-                text=_["queue_4"].format(position, title, duration_min, user_name),
-                reply_markup=InlineKeyboardMarkup(button),
-            )
+                title, duration_min, duration_sec, thumbnail, vidid = await YouTube.details(search, False if spotify else True)
+            except:
+                continue
+            if str(duration_min) == "None":
+                continue
             if duration_sec > config.DURATION_LIMIT:
                 continue
             if await is_active_chat(chat_id):
