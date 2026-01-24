@@ -373,7 +373,6 @@ WHITE = (255, 255, 255, 255)
 SHADOW = (0, 0, 0, 100)
 TEXT_SHADOW = (0, 0, 0, 130)
 STROKE_COLOR = (0, 0, 0, 255)
-    return None
 
 def resize_fit(img, w, h):
     r = min(w / img.width, h / img.height)
