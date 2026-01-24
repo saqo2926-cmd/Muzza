@@ -54,9 +54,9 @@ async def play_commnd(client, message: Message, _, chat_id, video, channel, play
             try:
                 ext = video_telegram.file_name.split('.')[-1]
                 if ext.lower() not in formats:
-                    return await mystic.edit_text(_['play_7'].format(f'{' | '.join(formats)}'))
+                    return await mystic.edit_text(_['play_7'].format(' | '.join(formats)))
             except:
-                return await mystic.edit_text(_['play_7'].format(f'{' | '.join(formats)}'))
+                return await mystic.edit_text(_['play_7'].format(' | '.join(formats)))
         if video_telegram.file_size > config.TG_VIDEO_FILESIZE_LIMIT:
             return await mystic.edit_text(_['play_8'])
         file_path = await Telegram.get_filepath(video=video_telegram)
