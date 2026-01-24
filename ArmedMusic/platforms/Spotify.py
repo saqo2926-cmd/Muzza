@@ -26,7 +26,7 @@ class SpotifyAPI:
         track = self.spotify.track(link)
         info = track['name']
         for artist in track['artists']:
-            fetched = f' {artist['name']}'
+            fetched = f" {artist['name']}"
             if 'Various Artists' not in fetched:
                 info += fetched
         results = VideosSearch(info, limit=1)
@@ -47,7 +47,7 @@ class SpotifyAPI:
             music_track = item['track']
             info = music_track['name']
             for artist in music_track['artists']:
-                fetched = f' {artist['name']}'
+                fetched = f" {artist['name']}"
                 if 'Various Artists' not in fetched:
                     info += fetched
             results.append(info)
@@ -60,7 +60,7 @@ class SpotifyAPI:
         for item in album['tracks']['items']:
             info = item['name']
             for artist in item['artists']:
-                fetched = f' {artist['name']}'
+                fetched = f" {artist['name']}"
                 if 'Various Artists' not in fetched:
                     info += fetched
             results.append(info)
@@ -74,7 +74,7 @@ class SpotifyAPI:
         for item in artisttoptracks['tracks']:
             info = item['name']
             for artist in item['artists']:
-                fetched = f' {artist['name']}'
+                fetched = f" {artist['name']}"
                 if 'Various Artists' not in fetched:
                     info += fetched
             results.append(info)
