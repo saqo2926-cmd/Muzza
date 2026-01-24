@@ -11,7 +11,7 @@ import shutil
 import re
 
 
-from AnonXMusic import config
+import config
 
 
 ASSETS_DIR = Path("AnonXMusic/fonts")
