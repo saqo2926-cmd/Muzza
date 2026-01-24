@@ -473,7 +473,7 @@ class YouTubeAPI:
                 ydl_opts_list = [
                     # Configuration 1: Advanced anti-detection with iOS client
                     {
-                        'format': 'bestaudio[ext=m4a]/bestaudio[acodec=mp4a]/140/bestaudio/best[ext=mp4]/best',
+                        'format': 'best',
                         'outtmpl': os.path.join("downloads", f"{vid_id}"),
                         'postprocessors': [{
                             'key': 'FFmpegExtractAudio',
@@ -494,13 +494,6 @@ class YouTubeAPI:
                             'Sec-Fetch-Site': 'none',
                             'Sec-Fetch-User': '?1',
                             'Upgrade-Insecure-Requests': '1',
-                        },
-                        'extractor_args': {
-                            'youtube': {
-                                'player_client': ['ios', 'android', 'web'],
-                                'player_skip': ['js', 'webpage'],
-                                'innertube_client': 'ios',
-                            }
                         },
                     },
                     # Configuration 2: Android client with enhanced headers
