@@ -469,61 +469,118 @@ class YouTubeAPI:
                 
                 cookie_file = cookie_txt_file()
                 
-                ydl_opts = {
-                    'format': 'bestaudio[ext=m4a]/bestaudio[acodec=mp4a]/140/bestaudio/best[ext=mp4]/best',
-                    'outtmpl': os.path.join("downloads", f"{vid_id}"),
-                    'postprocessors': [{
-                        'key': 'FFmpegExtractAudio',
-                        'preferredcodec': 'mp3',
-                        'preferredquality': '192',
-                    }],
-                    'quiet': True,
-                    'no_warnings': True,
-                    'retries': 10,
-                    'fragment_retries': 10,
-                    'skip_unavailable_fragments': True,
-                    'http_headers': {
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                        'Accept-Language': 'en-us,en;q=0.5',
-                        'Sec-Fetch-Mode': 'navigate',
-                        'Sec-Fetch-Dest': 'document',
-                        'Sec-Fetch-Site': 'none',
-                        'Sec-Fetch-User': '?1',
-                        'Upgrade-Insecure-Requests': '1',
+                # Try different configurations in order of preference
+                ydl_opts_list = [
+                    # Configuration 1: Advanced anti-detection
+                    {
+                        'format': 'bestaudio[ext=m4a]/bestaudio[acodec=mp4a]/140/bestaudio/best[ext=mp4]/best',
+                        'outtmpl': os.path.join("downloads", f"{vid_id}"),
+                        'postprocessors': [{
+                            'key': 'FFmpegExtractAudio',
+                            'preferredcodec': 'mp3',
+                            'preferredquality': '192',
+                        }],
+                        'quiet': True,
+                        'no_warnings': True,
+                        'retries': 5,
+                        'fragment_retries': 5,
+                        'skip_unavailable_fragments': True,
+                        'http_headers': {
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                            'Accept-Language': 'en-us,en;q=0.5',
+                            'Sec-Fetch-Mode': 'navigate',
+                            'Sec-Fetch-Dest': 'document',
+                            'Sec-Fetch-Site': 'none',
+                            'Sec-Fetch-User': '?1',
+                            'Upgrade-Insecure-Requests': '1',
+                        },
+                        'extractor_args': {
+                            'youtube': {
+                                'player_client': ['ios', 'android', 'web'],
+                                'player_skip': ['js', 'webpage'],
+                                'innertube_client': 'ios',
+                            }
+                        },
                     },
-                    'extractor_args': {
-                        'youtube': {
-                            'player_client': ['ios', 'android', 'web'],
-                            'player_skip': ['js', 'webpage'],
-                            'innertube_client': 'ios',
-                        }
+                    # Configuration 2: Simpler anti-detection
+                    {
+                        'format': 'bestaudio[ext=m4a]/bestaudio[acodec=mp4a]/140/bestaudio/best[ext=mp4]/best',
+                        'outtmpl': os.path.join("downloads", f"{vid_id}"),
+                        'postprocessors': [{
+                            'key': 'FFmpegExtractAudio',
+                            'preferredcodec': 'mp3',
+                            'preferredquality': '192',
+                        }],
+                        'quiet': True,
+                        'no_warnings': True,
+                        'retries': 3,
+                        'fragment_retries': 3,
+                        'skip_unavailable_fragments': True,
+                        'http_headers': {
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                            'Accept-Language': 'en-us,en;q=0.5',
+                        },
+                        'extractor_args': {
+                            'youtube': {
+                                'player_client': ['android', 'web'],
+                                'player_skip': ['js'],
+                            }
+                        },
                     },
-                }
+                    # Configuration 3: Basic configuration
+                    {
+                        'format': 'bestaudio/best',
+                        'outtmpl': os.path.join("downloads", f"{vid_id}"),
+                        'postprocessors': [{
+                            'key': 'FFmpegExtractAudio',
+                            'preferredcodec': 'mp3',
+                            'preferredquality': '192',
+                        }],
+                        'quiet': True,
+                        'no_warnings': True,
+                        'retries': 3,
+                        'fragment_retries': 3,
+                        'skip_unavailable_fragments': True,
+                    },
+                ]
                 
-                if cookie_file:
-                    ydl_opts['cookiefile'] = cookie_file
-                if YOUTUBE_PROXY:
-                    ydl_opts['proxy'] = YOUTUBE_PROXY
-                
-                loop = asyncio.get_running_loop()
-                with ThreadPoolExecutor() as executor:
-                    result = await loop.run_in_executor(executor, lambda: yt_dlp.YoutubeDL(ydl_opts).download([f'https://www.youtube.com/watch?v={vid_id}']))
-                    logger.info(f"yt_dlp download result for {vid_id}: {result}")
-                
-                logger.info(f"Checking for file at {filepath}")
-                if os.path.exists(filepath):
-                    logger.info(f"File found: {filepath}")
-                    return filepath
-                else:
-                    logger.error(f"Download failed, file not found at {filepath}")
-                    # List files in downloads directory for debugging
+                # Try each configuration
+                for i, ydl_opts in enumerate(ydl_opts_list):
                     try:
-                        files = os.listdir("downloads")
-                        logger.info(f"Files in downloads: {files}")
-                    except Exception as list_e:
-                        logger.error(f"Could not list downloads: {str(list_e)}")
-                    return None
+                        logger.info(f"Trying download configuration {i+1} for {vid_id}")
+                        
+                        if cookie_file and 'cookiefile' not in ydl_opts:
+                            ydl_opts['cookiefile'] = cookie_file
+                        if YOUTUBE_PROXY and 'proxy' not in ydl_opts:
+                            ydl_opts['proxy'] = YOUTUBE_PROXY
+                        
+                        loop = asyncio.get_running_loop()
+                        with ThreadPoolExecutor() as executor:
+                            result = await loop.run_in_executor(executor, lambda: yt_dlp.YoutubeDL(ydl_opts).download([f'https://www.youtube.com/watch?v={vid_id}']))
+                            logger.info(f"yt_dlp download result for {vid_id} (config {i+1}): {result}")
+                        
+                        logger.info(f"Checking for file at {filepath}")
+                        if os.path.exists(filepath):
+                            logger.info(f"File found: {filepath}")
+                            return filepath
+                        else:
+                            logger.warning(f"Download config {i+1} completed but file not found at {filepath}")
+                    except Exception as e:
+                        error_msg = str(e)
+                        logger.warning(f"Download config {i+1} failed for {vid_id}: {error_msg}")
+                        
+                        # If it's not a "page needs to be reloaded" error, don't retry
+                        if "page needs to be reloaded" not in error_msg and "Requested format is not available" not in error_msg:
+                            break
+                        
+                        # Continue to next configuration
+                        continue
+                
+                # If all configurations failed
+                logger.error(f"All download configurations failed for {vid_id}")
+                return None
                     
             except Exception as e:
                 logger.error(f"yt_dlp audio download failed for {vid_id}: {str(e)}")
@@ -644,52 +701,115 @@ class YouTubeAPI:
                 
                 cookie_file = cookie_txt_file()
                 
-                ydl_opts = {
-                    'format': 'bestaudio[ext=m4a]/bestaudio[acodec=mp4a]/140/bestaudio/best[ext=mp4]/best',
-                    'outtmpl': f"downloads/{title}",
-                    'postprocessors': [{
-                        'key': 'FFmpegExtractAudio',
-                        'preferredcodec': 'mp3',
-                        'preferredquality': '192',
-                    }],
-                    'quiet': True,
-                    'no_warnings': True,
-                    'retries': 10,
-                    'fragment_retries': 10,
-                    'skip_unavailable_fragments': True,
-                    'http_headers': {
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                        'Accept-Language': 'en-us,en;q=0.5',
-                        'Sec-Fetch-Mode': 'navigate',
-                        'Sec-Fetch-Dest': 'document',
-                        'Sec-Fetch-Site': 'none',
-                        'Sec-Fetch-User': '?1',
-                        'Upgrade-Insecure-Requests': '1',
+                # Try different configurations in order of preference
+                ydl_opts_list = [
+                    # Configuration 1: Advanced anti-detection
+                    {
+                        'format': 'bestaudio[ext=m4a]/bestaudio[acodec=mp4a]/140/bestaudio/best[ext=mp4]/best',
+                        'outtmpl': f"downloads/{title}",
+                        'postprocessors': [{
+                            'key': 'FFmpegExtractAudio',
+                            'preferredcodec': 'mp3',
+                            'preferredquality': '192',
+                        }],
+                        'quiet': True,
+                        'no_warnings': True,
+                        'retries': 5,
+                        'fragment_retries': 5,
+                        'skip_unavailable_fragments': True,
+                        'http_headers': {
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                            'Accept-Language': 'en-us,en;q=0.5',
+                            'Sec-Fetch-Mode': 'navigate',
+                            'Sec-Fetch-Dest': 'document',
+                            'Sec-Fetch-Site': 'none',
+                            'Sec-Fetch-User': '?1',
+                            'Upgrade-Insecure-Requests': '1',
+                        },
+                        'extractor_args': {
+                            'youtube': {
+                                'player_client': ['ios', 'android', 'web'],
+                                'player_skip': ['js', 'webpage'],
+                                'innertube_client': 'ios',
+                            }
+                        },
                     },
-                    'extractor_args': {
-                        'youtube': {
-                            'player_client': ['ios', 'android', 'web'],
-                            'player_skip': ['js', 'webpage'],
-                            'innertube_client': 'ios',
-                        }
+                    # Configuration 2: Simpler anti-detection
+                    {
+                        'format': 'bestaudio[ext=m4a]/bestaudio[acodec=mp4a]/140/bestaudio/best[ext=mp4]/best',
+                        'outtmpl': f"downloads/{title}",
+                        'postprocessors': [{
+                            'key': 'FFmpegExtractAudio',
+                            'preferredcodec': 'mp3',
+                            'preferredquality': '192',
+                        }],
+                        'quiet': True,
+                        'no_warnings': True,
+                        'retries': 3,
+                        'fragment_retries': 3,
+                        'skip_unavailable_fragments': True,
+                        'http_headers': {
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                            'Accept-Language': 'en-us,en;q=0.5',
+                        },
+                        'extractor_args': {
+                            'youtube': {
+                                'player_client': ['android', 'web'],
+                                'player_skip': ['js'],
+                            }
+                        },
                     },
-                }
+                    # Configuration 3: Basic configuration
+                    {
+                        'format': 'bestaudio/best',
+                        'outtmpl': f"downloads/{title}",
+                        'postprocessors': [{
+                            'key': 'FFmpegExtractAudio',
+                            'preferredcodec': 'mp3',
+                            'preferredquality': '192',
+                        }],
+                        'quiet': True,
+                        'no_warnings': True,
+                        'retries': 3,
+                        'fragment_retries': 3,
+                        'skip_unavailable_fragments': True,
+                    },
+                ]
                 
-                if cookie_file:
-                    ydl_opts['cookiefile'] = cookie_file
-                if YOUTUBE_PROXY:
-                    ydl_opts['proxy'] = YOUTUBE_PROXY
+                # Try each configuration
+                for i, ydl_opts in enumerate(ydl_opts_list):
+                    try:
+                        logger.info(f"Trying song audio download configuration {i+1} for {vid_id}")
+                        
+                        if cookie_file and 'cookiefile' not in ydl_opts:
+                            ydl_opts['cookiefile'] = cookie_file
+                        if YOUTUBE_PROXY and 'proxy' not in ydl_opts:
+                            ydl_opts['proxy'] = YOUTUBE_PROXY
+                        
+                        loop = asyncio.get_running_loop()
+                        with ThreadPoolExecutor() as executor:
+                            await loop.run_in_executor(executor, lambda: yt_dlp.YoutubeDL(ydl_opts).download([f'https://www.youtube.com/watch?v={vid_id}']))
+                        
+                        if os.path.exists(filepath):
+                            return filepath
+                        else:
+                            logger.warning(f"Song audio download config {i+1} completed but file not found at {filepath}")
+                    except Exception as e:
+                        error_msg = str(e)
+                        logger.warning(f"Song audio download config {i+1} failed for {vid_id}: {error_msg}")
+                        
+                        # If it's not a "page needs to be reloaded" error, don't retry
+                        if "page needs to be reloaded" not in error_msg and "Requested format is not available" not in error_msg:
+                            break
+                        
+                        # Continue to next configuration
+                        continue
                 
-                loop = asyncio.get_running_loop()
-                with ThreadPoolExecutor() as executor:
-                    await loop.run_in_executor(executor, lambda: yt_dlp.YoutubeDL(ydl_opts).download([f'https://www.youtube.com/watch?v={vid_id}']))
-                
-                if os.path.exists(filepath):
-                    return filepath
-                else:
-                    logger.error("Song audio download failed, file not found")
-                    return None
+                # If all configurations failed
+                logger.error(f"All song audio download configurations failed for {vid_id}")
+                return None
                     
             except Exception as e:
                 logger.error(f"yt_dlp song audio download failed for {vid_id}: {str(e)}")
