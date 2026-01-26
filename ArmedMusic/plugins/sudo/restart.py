@@ -13,7 +13,7 @@ from ArmedMusic.utils.decorators.language import language
 from ArmedMusic.utils.pastebin import AnonyBin
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-@app.on_message(filters.command(['getlog', 'logs', 'getlogs']) & SUDOERS)
+@app.on_message(filters.command(['logs']) & SUDOERS)
 @language
 async def log_(client, message, _):
     try:

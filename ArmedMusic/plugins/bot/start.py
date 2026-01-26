@@ -11,8 +11,7 @@ from ytSearch import VideosSearch
 import config
 from ArmedMusic import app
 from ArmedMusic.misc import _boot_, SUDOERS
-from ArmedMusic.plugins.sudo.sudoers import sudoers_list
-from ArmedMusic.utils.database import add_served_chat, add_served_user, blacklisted_chats, get_lang, is_banned_user, is_on_off, blacklist_chat
+from ArmedMusic.utils.database import add_served_chat, add_served_user, blacklisted_chats, get_lang, is_banned_user, blacklist_chat
 from ArmedMusic.utils.decorators.language import LanguageStart
 from ArmedMusic.utils.formatters import get_readable_time
 from ArmedMusic.utils.inline import help_pannel, private_panel, start_panel
@@ -29,11 +28,6 @@ async def start_pm(client, message: Message, _):
             is_sudo = message.from_user.id in SUDOERS
             keyboard = help_pannel(_, is_sudo)
             return await message.reply_photo(photo=random.choice(config.START_IMG_URL), caption=_['help_1'], reply_markup=keyboard)
-        if name[0:3] == 'sud':
-            await sudoers_list(client=client, message=message, _=_)
-            if await is_on_off(2):
-                return await app.send_message(chat_id=config.LOGGER_ID, text=f'{message.from_user.mention} ᴊᴜsᴛ sᴛᴀʀᴛᴇᴅ ᴛʜᴇ ʙᴏᴛ ᴛᴏ ᴄʜᴇᴄᴋ <b>sᴜᴅᴏʟɪsᴛ</b>.\n\n<b>ᴜsᴇʀ ɪᴅ :</b> <code>{message.from_user.id}</code>\n<b>ᴜsᴇʀɴᴀᴍᴇ :</b> @{message.from_user.username}')
-            return
         if name[0:3] == 'inf':
             m = await message.reply_text('🔎')
             query = str(name).replace('info_', '', 1)
@@ -52,13 +46,11 @@ async def start_pm(client, message: Message, _):
             key = InlineKeyboardMarkup([[InlineKeyboardButton(text=_['S_B_8'], url=link)]])
             await m.delete()
             await app.send_photo(chat_id=message.chat.id, photo=thumbnail, caption=searched_text, reply_markup=key)
-            if await is_on_off(2):
-                return await app.send_message(chat_id=config.LOGGER_ID, text=f'{message.from_user.mention} ᴊᴜsᴛ sᴛᴀʀᴛᴇᴅ ᴛʜᴇ ʙᴏᴛ ᴛᴏ ᴄʜᴇᴄᴋ <b>ᴛʀᴀᴄᴋ ɪɴғᴏʀᴍᴀᴛɪᴏɴ</b>.\n\n<b>ᴜsᴇʀ ɪᴅ :</b> <code>{message.from_user.id}</code>\n<b>ᴜsᴇʀɴᴀᴍᴇ :</b> @{message.from_user.username}')
+            return await app.send_message(chat_id=config.LOGGER_ID, text=f'{message.from_user.mention} ᴊᴜsᴛ sᴛᴀʀᴛᴇᴅ ᴛʜᴇ ʙᴏᴛ ᴛᴏ ᴄʜᴇᴄᴋ <b>ᴛʀᴀᴄᴋ ɪɴғᴏʀᴍᴀᴛɪᴏɴ</b>.\n\n<b>ᴜsᴇʀ ɪᴅ :</b> <code>{message.from_user.id}</code>\n<b>ᴜsᴇʀɴᴀᴍᴇ :</b> @{message.from_user.username}')
     else:
         out = private_panel(_)
         await message.reply_photo(photo=random.choice(config.START_IMG_URL), caption=_['start_2'].format(message.from_user.mention, app.mention), reply_markup=InlineKeyboardMarkup(out))
-        if await is_on_off(2):
-            return await app.send_message(chat_id=config.LOGGER_ID, text=f'{message.from_user.mention} ᴊᴜsᴛ sᴛᴀʀᴛᴇᴅ ᴛʜᴇ ʙᴏᴛ.\n\n<b>ᴜsᴇʀ ɪᴅ :</b> <code>{message.from_user.id}</code>\n<b>ᴜsᴇʀɴᴀᴍᴇ :</b> @{message.from_user.username}')
+        return await app.send_message(chat_id=config.LOGGER_ID, text=f'{message.from_user.mention} ᴊᴜsᴛ sᴛᴀʀᴛᴇᴅ ᴛʜᴇ ʙᴏᴛ.\n\n<b>ᴜsᴇʀ ɪᴅ :</b> <code>{message.from_user.id}</code>\n<b>ᴜsᴇʀɴᴀᴍᴇ :</b> @{message.from_user.username}')
 
 @app.on_message(filters.command(['start']) & filters.group & ~BANNED_USERS)
 @LanguageStart

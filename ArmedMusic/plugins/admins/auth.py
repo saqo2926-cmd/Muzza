@@ -48,7 +48,7 @@ async def unauthusers(client, message: Message, _):
     else:
         return await message.reply_text(_['auth_5'].format(user.mention))
 
-@app.on_message(filters.command(['authlist', 'authusers']) & filters.group & ~BANNED_USERS)
+@app.on_message(filters.command(['authlist', 'authusers', 'auths']) & filters.group & ~BANNED_USERS)
 @language
 async def authusers(client, message: Message, _):
     _wtf = await get_authuser_names(message.chat.id)

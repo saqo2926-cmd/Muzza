@@ -29,7 +29,7 @@ def get_duration(playing):
     else:
         return 'Inline'
 
-@app.on_message(filters.command(['queue', 'cqueue', 'player', 'cplayer', 'playing', 'cplaying']) & filters.group & ~BANNED_USERS)
+@app.on_message(filters.command(['queue', 'cqueue',]) & filters.group & ~BANNED_USERS)
 @language
 async def get_queue(client, message: Message, _):
     if message.command[0][0] == 'c':
@@ -120,7 +120,7 @@ async def queued_tracks(client, CallbackQuery: CallbackQuery, _):
     await CallbackQuery.answer()
     basic[videoid] = False
     buttons = queue_back_markup(_, what)
-    med = InputMediaPhoto(media='https://image2url.com/r2/default/images/1768793789039-2d4017a9-b0a3-43ec-837c-82855012c3fb.jpg', caption=_['queue_1'])
+    med = InputMediaPhoto(media='https://image2url.com/r2/default/images/1768792821746-ad62ab76-1fdc-45d7-8b5e-a5343577d6bb.jpg', caption=_['queue_1'])
     await CallbackQuery.edit_message_media(media=med)
     j = 0
     msg = ''
