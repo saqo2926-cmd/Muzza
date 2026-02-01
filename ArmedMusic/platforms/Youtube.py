@@ -23,27 +23,13 @@ ITALIC_TO_REGULAR = str.maketrans({119860: 'A', 119861: 'B', 119862: 'C', 119863
 
 def convert_italic_unicode(text):
     return text.translate(ITALIC_TO_REGULAR)
-from config import YT_API_KEY, YTPROXY_URL as YTPROXY, YOUTUBE_PROXY, YOUTUBE_USE_COOKIES, YOUTUBE_USE_PYTUBE, YOUTUBE_INVIDIOUS_INSTANCES, YOUTUBE_FALLBACK_SEARCH_LIMIT
+sdeloy tak chtobi iz kodov ibfrom config import YT_API_KEY, YTPROXY_URL as YTPROXY, YOUTUBE_PROXY, YOUTUBE_USE_PYTUBE, YOUTUBE_INVIDIOUS_INSTANCES, YOUTUBE_FALLBACK_SEARCH_LIMIT
 logger = LOGGER(__name__)
-
-def cookie_txt_file():
-    try:
-        cookie_file = f'{os.getcwd()}/cookies/youtube_cookies.txt'
-        if os.path.exists(cookie_file):
-            return f"cookies/youtube_cookies.txt"
-        else:
-            return None
-    except:
-        return None
 
 async def check_file_size(link):
 
     async def get_format_info(link):
-        cookie = cookie_txt_file() if YOUTUBE_USE_COOKIES else None
-        if cookie:
-            cmd = ['yt-dlp', '--cookies', cookie, '--js-runtimes', 'node', '-J', link]
-        else:
-            cmd = ['yt-dlp', '--js-runtimes', 'node', '-J', link]
+        cmd = ['yt-dlp', '--js-runtimes', 'node', '-J', link]
         if YOUTUBE_PROXY:
             cmd.extend(['--proxy', YOUTUBE_PROXY])
         proc = await asyncio.create_subprocess_exec(*cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE) 
@@ -87,7 +73,7 @@ class YouTubeAPI:
         self.status = 'https://www.youtube.com/oembed?url='
         self.listbase = 'https://youtube.com/playlist?list='
         self.reg = re.compile('\\x1B(?:[@-Z\\\\-_]|\\[[0-?]*[ -/]*[@-~])')
-        self.dl_stats = {'total_requests': 0, 'okflix_downloads': 0, 'cookie_downloads': 0, 'existing_files': 0}
+        self.dl_stats = {'total_requests': 0, 'okflix_downloads': 0, 'existing_files': 0}
         self.invidious_index = 0
         self.fallback_search_limit = YOUTUBE_FALLBACK_SEARCH_LIMIT
 
@@ -203,7 +189,6 @@ class YouTubeAPI:
             link = link.split('?si=')[0]
         elif '&si=' in link:
             link = link.split('&si=')[0]
-        cookie = cookie_txt_file() if YOUTUBE_USE_COOKIES else None
         
         # Try multiple format options as fallbacks
         format_options = [
@@ -216,10 +201,7 @@ class YouTubeAPI:
         
         for fmt in format_options:
             try:
-                if cookie:
-                    cmd = ['yt-dlp', '--cookies', cookie, '-g', '-f', fmt, f'{link}']
-                else:
-                    cmd = ['yt-dlp', '-g', '-f', fmt, f'{link}']
+                cmd = ['yt-dlp', '-g', '-f', fmt, f'{link}']
                 if YOUTUBE_PROXY:
                     cmd.extend(['--proxy', YOUTUBE_PROXY])
                 proc = await asyncio.create_subprocess_exec(*cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
@@ -243,9 +225,7 @@ class YouTubeAPI:
             link = link.split('?si=')[0]
         elif '&si=' in link:
             link = link.split('&si=')[0]
-        cookie = cookie_txt_file() if YOUTUBE_USE_COOKIES else None
-        cookie_part = f'--cookies {cookie} ' if cookie else ''
-        playlist = await shell_cmd(f'yt-dlp -i --get-id --flat-playlist {cookie_part}--playlist-end {limit} --skip-download {link}')
+        playlist = await shell_cmd(f'yt-dlp -i --get-id --flat-playlist --playlist-end {limit} --skip-download {link}')
         try:
             result = playlist.split('\n')
             for key in result:
@@ -288,9 +268,6 @@ class YouTubeAPI:
         elif '&si=' in link:
             link = link.split('&si=')[0]
         ytdl_opts = {'quiet': True, 'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', 'http_headers': {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8', 'Accept-Language': 'en-us,en;q=0.5', 'Sec-Fetch-Mode': 'navigate'}}
-        cookie = cookie_txt_file() if YOUTUBE_USE_COOKIES else None
-        if cookie:
-            ytdl_opts['cookiefile'] = cookie
         ydl = yt_dlp.YoutubeDL(ytdl_opts)
         with ydl:
             formats_available = []
@@ -403,7 +380,6 @@ class YouTubeAPI:
                                 logger.info(f'First audio+video format: {audio_formats[0]}')
                 except Exception as info_e:
                     logger.error(f'Failed to get info for {vid_id}: {str(info_e)}')
-                cookie_file = cookie_txt_file() if YOUTUBE_USE_COOKIES else None
                 # Try invidious instances first
                 if YOUTUBE_INVIDIOUS_INSTANCES:
                     for _ in range(len(YOUTUBE_INVIDIOUS_INSTANCES)):
@@ -415,8 +391,6 @@ class YouTubeAPI:
                             ydl_fallback = {'format': 'bestaudio/best', 'outtmpl': os.path.join('downloads', f'{vid_id}'), 'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3', 'preferredquality': '192'}], 'quiet': True, 'no_warnings': True, 'retries': 5, 'fragment_retries': 5, 'skip_unavailable_fragments': True, 'js_runtimes': {'node': {}}}
                             if YOUTUBE_PROXY:
                                 ydl_fallback['proxy'] = YOUTUBE_PROXY
-                            if cookie_file and 'cookiefile' not in ydl_fallback:
-                                ydl_fallback['cookiefile'] = cookie_file
                             loop = asyncio.get_running_loop()
                             with ThreadPoolExecutor() as executor:
                                 await loop.run_in_executor(executor, lambda: yt_dlp.YoutubeDL(ydl_fallback).download([invid_url]))
@@ -642,9 +616,6 @@ class YouTubeAPI:
                 # Fallback: try direct stream URLs via yt-dlp -g then download via requests
                 try:
                     cmd = ['yt-dlp', '--format', 'bestaudio/best', '--js-runtimes', 'node', '-g', f'https://www.youtube.com/watch?v={vid_id}']
-                    cookie = cookie_txt_file() if YOUTUBE_USE_COOKIES else None
-                    if cookie:
-                        cmd = ['yt-dlp', '--format', 'bestaudio/best', '--cookies', cookie, '--js-runtimes', 'node', '-g', f'https://www.youtube.com/watch?v={vid_id}']
                     if YOUTUBE_PROXY:
                         cmd.extend(['--proxy', YOUTUBE_PROXY])
                     proc = await asyncio.create_subprocess_exec(*cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
@@ -814,7 +785,6 @@ class YouTubeAPI:
                 os.makedirs(os.path.dirname(filepath), exist_ok=True)
                 if os.path.exists(filepath):
                     return filepath
-                cookie_file = cookie_txt_file() if YOUTUBE_USE_COOKIES else None
                 # Try invidious instances first
                 if YOUTUBE_INVIDIOUS_INSTANCES:
                     for _ in range(len(YOUTUBE_INVIDIOUS_INSTANCES)):
@@ -826,8 +796,6 @@ class YouTubeAPI:
                             ydl_fallback = {'format': 'bestaudio/best', 'outtmpl': f'downloads/{title}', 'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3', 'preferredquality': '192'}], 'quiet': True, 'no_warnings': True, 'retries': 5, 'fragment_retries': 5, 'skip_unavailable_fragments': True, 'js_runtimes': {'node': {}}}
                             if YOUTUBE_PROXY:
                                 ydl_fallback['proxy'] = YOUTUBE_PROXY
-                            if cookie_file and 'cookiefile' not in ydl_fallback:
-                                ydl_fallback['cookiefile'] = cookie_file
                             loop = asyncio.get_running_loop()
                             with ThreadPoolExecutor() as executor:
                                 await loop.run_in_executor(executor, lambda: yt_dlp.YoutubeDL(ydl_fallback).download([invid_url]))
@@ -993,9 +961,6 @@ class YouTubeAPI:
                 # Fallback: try direct stream URLs via yt-dlp -g then download via requests
                 try:
                     cmd = ['yt-dlp', '--format', 'bestaudio/best', '--js-runtimes', 'node', '-g', f'https://www.youtube.com/watch?v={vid_id}']
-                    cookie = cookie_txt_file() if YOUTUBE_USE_COOKIES else None
-                    if cookie:
-                        cmd = ['yt-dlp', '--format', 'bestaudio/best', '--cookies', cookie, '--js-runtimes', 'node', '-g', f'https://www.youtube.com/watch?v={vid_id}']
                     if YOUTUBE_PROXY:
                         cmd.extend(['--proxy', YOUTUBE_PROXY])
                     proc = await asyncio.create_subprocess_exec(*cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)

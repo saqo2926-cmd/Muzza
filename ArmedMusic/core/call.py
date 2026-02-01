@@ -36,7 +36,6 @@ from ArmedMusic.utils.formatters import check_duration, seconds_to_min, speed_co
 from ArmedMusic.utils.inline.play import stream_markup
 from ArmedMusic.utils.thumbnails import get_thumb
 from strings import get_string
-from ArmedMusic.platforms.Youtube import cookie_txt_file
 
 autoend = {}
 counter = {}
