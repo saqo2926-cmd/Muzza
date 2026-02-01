@@ -23,7 +23,9 @@ ITALIC_TO_REGULAR = str.maketrans({119860: 'A', 119861: 'B', 119862: 'C', 119863
 
 def convert_italic_unicode(text):
     return text.translate(ITALIC_TO_REGULAR)
-sdeloy tak chtobi iz kodov ibfrom config import YT_API_KEY, YTPROXY_URL as YTPROXY, YOUTUBE_PROXY, YOUTUBE_USE_PYTUBE, YOUTUBE_INVIDIOUS_INSTANCES, YOUTUBE_FALLBACK_SEARCH_LIMIT
+
+from config import YT_API_KEY, YTPROXY_URL as YTPROXY, YOUTUBE_PROXY, YOUTUBE_USE_PYTUBE, YOUTUBE_INVIDIOUS_INSTANCES, YOUTUBE_FALLBACK_SEARCH_LIMIT
+
 logger = LOGGER(__name__)
 
 async def check_file_size(link):
