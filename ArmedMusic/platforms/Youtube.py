@@ -41,9 +41,9 @@ async def check_file_size(link):
     async def get_format_info(link):
         cookie = cookie_txt_file() if YOUTUBE_USE_COOKIES else None
         if cookie:
-            cmd = ['yt-dlp', '--cookies', cookie, '-J', link]
+            cmd = ['yt-dlp', '--cookies', cookie, '--js-runtimes', 'node', '-J', link]
         else:
-            cmd = ['yt-dlp', '-J', link]
+            cmd = ['yt-dlp', '--js-runtimes', 'node', '-J', link]
         if YOUTUBE_PROXY:
             cmd.extend(['--proxy', YOUTUBE_PROXY])
         proc = await asyncio.create_subprocess_exec(*cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE) 
@@ -383,6 +383,50 @@ class YouTubeAPI:
                 except Exception as info_e:
                     logger.error(f'Failed to get info for {vid_id}: {str(info_e)}')
                 cookie_file = cookie_txt_file() if YOUTUBE_USE_COOKIES else None
+                # Try invidious instances first
+                if YOUTUBE_INVIDIOUS_INSTANCES:
+                    for _ in range(len(YOUTUBE_INVIDIOUS_INSTANCES)):
+                        inst = self._next_invidious()
+                        if not inst:
+                            break
+                        try:
+                            invid_url = f"{inst.rstrip('/')}/watch?v={vid_id}"
+                            ydl_fallback = {'format': 'bestaudio/best', 'outtmpl': os.path.join('downloads', f'{vid_id}'), 'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3', 'preferredquality': '192'}], 'quiet': True, 'no_warnings': True, 'retries': 5, 'fragment_retries': 5, 'skip_unavailable_fragments': True, 'js_runtimes': ['node']}
+                            if YOUTUBE_PROXY:
+                                ydl_fallback['proxy'] = YOUTUBE_PROXY
+                            if cookie_file and 'cookiefile' not in ydl_fallback:
+                                ydl_fallback['cookiefile'] = cookie_file
+                            loop = asyncio.get_running_loop()
+                            with ThreadPoolExecutor() as executor:
+                                await loop.run_in_executor(executor, lambda: yt_dlp.YoutubeDL(ydl_fallback).download([invid_url]))
+                            if os.path.exists(filepath):
+                                logger.info(f'Invidious download succeeded with {inst}')
+                                return filepath
+                        except Exception as e:
+                            logger.warning(f'Invidious {inst} failed for {vid_id}: {e}')
+                # Try pytube if enabled
+                if YOUTUBE_USE_PYTUBE:
+                    try:
+                        from pytube import YouTube as PyTube
+                        tmpfile = os.path.join('downloads', f'{vid_id}_pytube')
+                        yt_obj = PyTube(f'https://www.youtube.com/watch?v={vid_id}')
+                        stream = yt_obj.streams.filter(only_audio=True).order_by('abr').desc().first()
+                        if stream:
+                            out = stream.download(output_path='downloads', filename=f'{vid_id}_pytube')
+                            # convert to mp3
+                            mp3path = filepath
+                            try:
+                                subprocess.run(['ffmpeg', '-y', '-i', out, '-vn', '-ab', '192k', mp3path], check=True)
+                                if os.path.exists(mp3path):
+                                    logger.info('pytube download succeeded and converted to mp3')
+                                    # cleanup original
+                                    if os.path.exists(out) and out != mp3path:
+                                        os.remove(out)
+                                    return mp3path
+                            except Exception as conv_e:
+                                logger.warning(f'ffmpeg conversion failed for {out}: {conv_e}')
+                    except Exception as py_e:
+                        logger.warning(f'pytube failed for {vid_id}: {py_e}')
                 ydl_opts_list = [
                     {
                         'format': 'bestaudio/best',
@@ -393,6 +437,7 @@ class YouTubeAPI:
                         'retries': 5,
                         'fragment_retries': 5,
                         'skip_unavailable_fragments': True,
+                        'js_runtimes': ['node'],
                         'http_headers': {
                             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
                             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -414,6 +459,7 @@ class YouTubeAPI:
                         'retries': 5,
                         'fragment_retries': 5,
                         'skip_unavailable_fragments': True,
+                        'js_runtimes': ['node'],
                         'http_headers': {
                             'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1',
                             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -435,6 +481,7 @@ class YouTubeAPI:
                         'retries': 3,
                         'fragment_retries': 3,
                         'skip_unavailable_fragments': True,
+                        'js_runtimes': ['node'],
                         'http_headers': {
                             'User-Agent': 'Mozilla/5.0 (Linux; Android 10; SM-G973F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36',
                             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -460,6 +507,7 @@ class YouTubeAPI:
                         'retries': 3,
                         'fragment_retries': 3,
                         'skip_unavailable_fragments': True,
+                        'js_runtimes': ['node'],
                         'http_headers': {
                             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/133.0',
                             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
@@ -482,7 +530,8 @@ class YouTubeAPI:
                         'no_warnings': True,
                         'retries': 3,
                         'fragment_retries': 3,
-                        'skip_unavailable_fragments': True
+                        'skip_unavailable_fragments': True,
+                        'js_runtimes': ['node']
                     },
                     {
                         'format': 'bestaudio[ext=m4a]/bestaudio[acodec=mp4a]/140/bestaudio/best[ext=mp4]/best',
@@ -493,6 +542,7 @@ class YouTubeAPI:
                         'retries': 5,
                         'fragment_retries': 5,
                         'skip_unavailable_fragments': True,
+                        'js_runtimes': ['node'],
                         'http_headers': {
                             'User-Agent': 'com.google.android.youtube/19.09.36 (Linux; U; Android 11; SM-G973F) gzip',
                             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -509,6 +559,7 @@ class YouTubeAPI:
                         'retries': 5,
                         'fragment_retries': 5,
                         'skip_unavailable_fragments': True,
+                        'js_runtimes': ['node'],
                         'http_headers': {
                             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
                             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -530,6 +581,7 @@ class YouTubeAPI:
                         'retries': 5,
                         'fragment_retries': 5,
                         'skip_unavailable_fragments': True,
+                        'js_runtimes': ['node'],
                         'http_headers': {
                             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
                             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -566,56 +618,12 @@ class YouTubeAPI:
                         logger.warning(f'Download config {i + 1} failed for {vid_id}: {error_msg}')
                         continue
                 logger.error(f'All download configurations failed for {vid_id}')
-                # Fallback: try invidious instances (rotated)
-                if YOUTUBE_INVIDIOUS_INSTANCES:
-                    for _ in range(len(YOUTUBE_INVIDIOUS_INSTANCES)):
-                        inst = self._next_invidious()
-                        if not inst:
-                            break
-                        try:
-                            invid_url = f"{inst.rstrip('/')}/watch?v={vid_id}"
-                            ydl_fallback = {'format': 'bestaudio/best', 'outtmpl': os.path.join('downloads', f'{vid_id}'), 'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3', 'preferredquality': '192'}], 'quiet': True, 'no_warnings': True, 'retries': 5, 'fragment_retries': 5, 'skip_unavailable_fragments': True}
-                            if YOUTUBE_PROXY:
-                                ydl_fallback['proxy'] = YOUTUBE_PROXY
-                            if cookie_file and 'cookiefile' not in ydl_fallback:
-                                ydl_fallback['cookiefile'] = cookie_file
-                            loop = asyncio.get_running_loop()
-                            with ThreadPoolExecutor() as executor:
-                                await loop.run_in_executor(executor, lambda: yt_dlp.YoutubeDL(ydl_fallback).download([invid_url]))
-                            if os.path.exists(filepath):
-                                logger.info(f'Fallback invidious download succeeded with {inst}')
-                                return filepath
-                        except Exception as e:
-                            logger.warning(f'Invidious fallback {inst} failed for {vid_id}: {e}')
-                # Fallback: try pytube if enabled
-                if YOUTUBE_USE_PYTUBE:
-                    try:
-                        from pytube import YouTube as PyTube
-                        tmpfile = os.path.join('downloads', f'{vid_id}_pytube')
-                        yt_obj = PyTube(f'https://www.youtube.com/watch?v={vid_id}')
-                        stream = yt_obj.streams.filter(only_audio=True).order_by('abr').desc().first()
-                        if stream:
-                            out = stream.download(output_path='downloads', filename=f'{vid_id}_pytube')
-                            # convert to mp3
-                            mp3path = filepath
-                            try:
-                                subprocess.run(['ffmpeg', '-y', '-i', out, '-vn', '-ab', '192k', mp3path], check=True)
-                                if os.path.exists(mp3path):
-                                    logger.info('pytube fallback succeeded and converted to mp3')
-                                    # cleanup original
-                                    if os.path.exists(out) and out != mp3path:
-                                        os.remove(out)
-                                    return mp3path
-                            except Exception as conv_e:
-                                logger.warning(f'ffmpeg conversion failed for {out}: {conv_e}')
-                    except Exception as py_e:
-                        logger.warning(f'pytube fallback failed for {vid_id}: {py_e}')
                 # Fallback: try direct stream URLs via yt-dlp -g then download via requests
                 try:
-                    cmd = ['yt-dlp', '-g', f'https://www.youtube.com/watch?v={vid_id}']
+                    cmd = ['yt-dlp', '--js-runtimes', 'node', '-g', f'https://www.youtube.com/watch?v={vid_id}']
                     cookie = cookie_txt_file() if YOUTUBE_USE_COOKIES else None
                     if cookie:
-                        cmd = ['yt-dlp', '--cookies', cookie, '-g', f'https://www.youtube.com/watch?v={vid_id}']
+                        cmd = ['yt-dlp', '--cookies', cookie, '--js-runtimes', 'node', '-g', f'https://www.youtube.com/watch?v={vid_id}']
                     if YOUTUBE_PROXY:
                         cmd.extend(['--proxy', YOUTUBE_PROXY])
                     proc = await asyncio.create_subprocess_exec(*cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
@@ -698,6 +706,49 @@ class YouTubeAPI:
                 if os.path.exists(filepath):
                     return filepath
                 cookie_file = cookie_txt_file() if YOUTUBE_USE_COOKIES else None
+                # Try invidious instances first
+                if YOUTUBE_INVIDIOUS_INSTANCES:
+                    for _ in range(len(YOUTUBE_INVIDIOUS_INSTANCES)):
+                        inst = self._next_invidious()
+                        if not inst:
+                            break
+                        try:
+                            invid_url = f"{inst.rstrip('/')}/watch?v={vid_id}"
+                            ydl_fallback = {'format': 'bestaudio/best', 'outtmpl': f'downloads/{title}', 'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3', 'preferredquality': '192'}], 'quiet': True, 'no_warnings': True, 'retries': 5, 'fragment_retries': 5, 'skip_unavailable_fragments': True, 'js_runtimes': ['node']}
+                            if YOUTUBE_PROXY:
+                                ydl_fallback['proxy'] = YOUTUBE_PROXY
+                            if cookie_file and 'cookiefile' not in ydl_fallback:
+                                ydl_fallback['cookiefile'] = cookie_file
+                            loop = asyncio.get_running_loop()
+                            with ThreadPoolExecutor() as executor:
+                                await loop.run_in_executor(executor, lambda: yt_dlp.YoutubeDL(ydl_fallback).download([invid_url]))
+                            if os.path.exists(filepath):
+                                logger.info(f'Invidious song download succeeded with {inst}')
+                                return filepath
+                        except Exception as e:
+                            logger.warning(f'Invidious {inst} failed for song {vid_id}: {e}')
+                # Try pytube if enabled
+                if YOUTUBE_USE_PYTUBE:
+                    try:
+                        from pytube import YouTube as PyTube
+                        yt_obj = PyTube(f'https://www.youtube.com/watch?v={vid_id}')
+                        stream = yt_obj.streams.filter(only_audio=True).order_by('abr').desc().first()
+                        if stream:
+                            out = stream.download(output_path='downloads', filename=f'{title}_pytube')
+                            # convert to mp3
+                            mp3path = filepath
+                            try:
+                                subprocess.run(['ffmpeg', '-y', '-i', out, '-vn', '-ab', '192k', mp3path], check=True)
+                                if os.path.exists(mp3path):
+                                    logger.info('pytube song download succeeded and converted to mp3')
+                                    # cleanup original
+                                    if os.path.exists(out) and out != mp3path:
+                                        os.remove(out)
+                                    return mp3path
+                            except Exception as conv_e:
+                                logger.warning(f'ffmpeg conversion failed for song {out}: {conv_e}')
+                    except Exception as py_e:
+                        logger.warning(f'pytube failed for song {vid_id}: {py_e}')
                 ydl_opts_list = [
                     {
                         'format': 'bestaudio/best',
@@ -708,6 +759,7 @@ class YouTubeAPI:
                         'retries': 5,
                         'fragment_retries': 5,
                         'skip_unavailable_fragments': True,
+                        'js_runtimes': ['node'],
                         'http_headers': {
                             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
                             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -729,6 +781,7 @@ class YouTubeAPI:
                         'retries': 5,
                         'fragment_retries': 5,
                         'skip_unavailable_fragments': True,
+                        'js_runtimes': ['node'],
                         'http_headers': {
                             'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1',
                             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -750,6 +803,7 @@ class YouTubeAPI:
                         'retries': 3,
                         'fragment_retries': 3,
                         'skip_unavailable_fragments': True,
+                        'js_runtimes': ['node'],
                         'http_headers': {
                             'User-Agent': 'Mozilla/5.0 (Linux; Android 10; SM-G973F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36',
                             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -829,10 +883,10 @@ class YouTubeAPI:
                         logger.warning(f'pytube fallback failed for {vid_id}: {py_e}')
                 # Fallback: try direct stream URLs via yt-dlp -g then download via requests
                 try:
-                    cmd = ['yt-dlp', '-g', f'https://www.youtube.com/watch?v={vid_id}']
+                    cmd = ['yt-dlp', '--js-runtimes', 'node', '-g', f'https://www.youtube.com/watch?v={vid_id}']
                     cookie = cookie_txt_file() if YOUTUBE_USE_COOKIES else None
                     if cookie:
-                        cmd = ['yt-dlp', '--cookies', cookie, '-g', f'https://www.youtube.com/watch?v={vid_id}']
+                        cmd = ['yt-dlp', '--cookies', cookie, '--js-runtimes', 'node', '-g', f'https://www.youtube.com/watch?v={vid_id}']
                     if YOUTUBE_PROXY:
                         cmd.extend(['--proxy', YOUTUBE_PROXY])
                     proc = await asyncio.create_subprocess_exec(*cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
