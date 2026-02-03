@@ -30,7 +30,7 @@ async def play_commnd(client, message: Message, _, chat_id, video, channel, play
     audio_telegram = message.reply_to_message.audio or message.reply_to_message.voice if message.reply_to_message else None
     video_telegram = message.reply_to_message.video or message.reply_to_message.document if message.reply_to_message else None
     if audio_telegram:
-        if audio_telegram.file_size > 104857600:
+        if audio_telegram.file_size > config.TG_AUDIO_FILESIZE_LIMIT:
             return await mystic.edit_text(_['play_5'])
         duration_min = seconds_to_min(audio_telegram.duration)
         if audio_telegram.duration > config.DURATION_LIMIT:
