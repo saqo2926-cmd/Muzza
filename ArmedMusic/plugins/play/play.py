@@ -11,13 +11,14 @@ from ArmedMusic.utils import seconds_to_min, time_to_seconds
 from ArmedMusic.utils.channelplay import get_channeplayCB
 from ArmedMusic.utils.decorators.language import languageCB
 from ArmedMusic.utils.decorators.play import PlayWrapper
+from ArmedMusic.utils.decorators.urls import no_preview_filter
 from ArmedMusic.utils.formatters import formats
 from ArmedMusic.utils.inline import botplaylist_markup, livestream_markup, playlist_markup, slider_markup, track_markup
 from ArmedMusic.utils.logger import play_logs
 from ArmedMusic.utils.stream.stream import stream
 from config import BANNED_USERS, lyrical
 
-@app.on_message(filters.command(['play', 'vplay', 'cplay', 'cvplay', 'playforce', 'vplayforce', 'cplayforce', 'cvplayforce']) & filters.group & ~BANNED_USERS)
+@app.on_message(filters.command(['play', 'vplay', 'cplay', 'cvplay', 'playforce', 'vplayforce', 'cplayforce', 'cvplayforce']) & filters.group & ~BANNED_USERS & no_preview_filter)
 @PlayWrapper
 async def play_commnd(client, message: Message, _, chat_id, video, channel, playmode, url, fplay):
     mystic = await message.reply_text(_['play_2'].format(channel) if channel else _['play_1'])

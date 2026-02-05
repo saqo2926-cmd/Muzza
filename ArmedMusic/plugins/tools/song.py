@@ -8,6 +8,7 @@ from pyrogram import filters
 from pyrogram.types import Message
 from ytSearch import VideosSearch
 from ArmedMusic import app
+from ArmedMusic.utils.decorators.urls import no_preview_filter
 from config import BANNED_USERS, YOUTUBE_PROXY
 from ArmedMusic import LOGGER
 logger = LOGGER(__name__)
@@ -31,7 +32,7 @@ async def download_thumbnail(url: str, filename: str) -> str:
         logger.error(f'Thumbnail download failed: {e}')
     return None
 
-@app.on_message(filters.command(['song']) & ~BANNED_USERS)
+@app.on_message(filters.command(['song']) & ~BANNED_USERS & no_preview_filter)
 async def song_download(client, message: Message):
     if len(message.command) < 2:
         return await message.reply_text('Please provide a song name or YouTube URL.\n\nExample: `/song Believer` or `/song https://www.youtube.com/watch?v=7wtfhZwyrcc`')

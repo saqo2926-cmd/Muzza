@@ -4,9 +4,10 @@ from pyrogram.types import Message
 from ArmedMusic import app
 from ArmedMusic.utils.database import set_cmode
 from ArmedMusic.utils.decorators.admins import AdminActual
+from ArmedMusic.utils.decorators.urls import no_preview_filter
 from config import BANNED_USERS
 
-@app.on_message(filters.command(['channelplay']) & filters.group & ~BANNED_USERS)
+@app.on_message(filters.command(['channelplay']) & filters.group & ~BANNED_USERS & no_preview_filter)
 @AdminActual
 async def playmode_(client, message: Message, _):
     if len(message.command) < 2:
