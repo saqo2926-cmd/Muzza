@@ -193,22 +193,22 @@ class YouTubeAPI:
             link = link.split('&si=')[0]
         
         # Dynamically build format candidates from extractor info, prefer audio-only
-                url_to_check = f'https://www.youtube.com/watch?v={vid_id}'
-                format_options = []
-                try:
-                    with yt_dlp.YoutubeDL({'quiet': True}) as ydl_info:
-                        info_local = ydl_info.extract_info(url_to_check, download=False)
-                        formats = info_local.get('formats', []) or []
-                        audio_only = [f for f in formats if f.get('acodec') and f.get('acodec') != 'none' and (not f.get('vcodec') or f.get('vcodec') == 'none')]
-                        if audio_only:
-                            audio_sorted = sorted(audio_only, key=lambda f: float(f.get('abr') or 0), reverse=True)
-                            format_options.extend([f.get('format_id') for f in audio_sorted if f.get('format_id')])
-                        video_fmts = [f for f in formats if f.get('vcodec') and f.get('vcodec') != 'none']
-                        if video_fmts:
-                            video_sorted = sorted(video_fmts, key=lambda f: int(f.get('height') or 0), reverse=True)
-                            format_options.extend([f.get('format_id') for f in video_sorted if f.get('format_id')])
-                except Exception as info_e:
-                    logger.debug(f'Could not extract formats for dynamic selection: {info_e}')
+        url_to_check = f'https://www.youtube.com/watch?v={vid_id}'
+        format_options = []
+        try:
+            with yt_dlp.YoutubeDL({'quiet': True}) as ydl_info:
+                info_local = ydl_info.extract_info(url_to_check, download=False)
+                formats = info_local.get('formats', []) or []
+                audio_only = [f for f in formats if f.get('acodec') and f.get('acodec') != 'none' and (not f.get('vcodec') or f.get('vcodec') == 'none')]
+                if audio_only:
+                    audio_sorted = sorted(audio_only, key=lambda f: float(f.get('abr') or 0), reverse=True)
+                    format_options.extend([f.get('format_id') for f in audio_sorted if f.get('format_id')])
+                video_fmts = [f for f in formats if f.get('vcodec') and f.get('vcodec') != 'none']
+                if video_fmts:
+                    video_sorted = sorted(video_fmts, key=lambda f: int(f.get('height') or 0), reverse=True)
+                    format_options.extend([f.get('format_id') for f in video_sorted if f.get('format_id')])
+        except Exception as info_e:
+            logger.debug(f'Could not extract formats for dynamic selection: {info_e}')
 
         # Deduplicate while preserving order and add safe fallbacks
         seen = set()
