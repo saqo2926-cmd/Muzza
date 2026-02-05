@@ -366,8 +366,25 @@ class YouTubeAPI:
                 os.makedirs(os.path.dirname(filepath), exist_ok=True)
                 if os.path.exists(filepath):
                     return filepath
+                # Safely attempt to get video info; ensure `info` is always defined
+                info = None
                 try:
-                    info_opts = {'quiet': True, 'no_warnings': True, 'extract_flat': False, 'http_headers': {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8', 'Accept-Language': 'en-us,en;q=0.5', 'Sec-Fetch-Mode': 'navigate', 'Sec-Fetch-Dest': 'document', 'Sec-Fetch-Site': 'none', 'Sec-Fetch-User': '?1', 'Upgrade-Insecure-Requests': '1'}, 'extractor_args': {'youtube': {'player_client': ['ios', 'android', 'web'], 'player_skip': ['js', 'webpage'], 'innertube_client': 'ios'}}}
+                    info_opts = {
+                        'quiet': True,
+                        'no_warnings': True,
+                        'extract_flat': False,
+                        'http_headers': {
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+                            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                            'Accept-Language': 'en-us,en;q=0.5',
+                            'Sec-Fetch-Mode': 'navigate',
+                            'Sec-Fetch-Dest': 'document',
+                            'Sec-Fetch-Site': 'none',
+                            'Sec-Fetch-User': '?1',
+                            'Upgrade-Insecure-Requests': '1'
+                        },
+                        'extractor_args': {'youtube': {'player_client': ['ios', 'android', 'web'], 'player_skip': ['js', 'webpage'], 'innertube_client': 'ios'}}
+                    }
                     with yt_dlp.YoutubeDL(info_opts) as ydl:
                         info = ydl.extract_info(f'https://www.youtube.com/watch?v={vid_id}', download=False)
                         formats = info.get('formats', [])
@@ -381,7 +398,7 @@ class YouTubeAPI:
                             if audio_formats:
                                 logger.info(f'First audio+video format: {audio_formats[0]}')
                 except Exception as info_e:
-                    logger.error(f'Failed to get info for {vid_id}: {str(info_e)}')
+                    logger.warning(f'Failed to get info for {vid_id}: {str(info_e)}')
                 # Try invidious instances first
                 if YOUTUBE_INVIDIOUS_INSTANCES:
                     for _ in range(len(YOUTUBE_INVIDIOUS_INSTANCES)):
@@ -629,9 +646,30 @@ class YouTubeAPI:
                                 return res
                 except Exception as ds_e:
                     logger.warning(f'Direct-stream fallback failed: {ds_e}')
+                # Additional fallback: try legacy `youtube_dl` library if available
+                try:
+                    import youtube_dl as legacy_ytdl
+                    try:
+                        legacy_opts = {
+                            'format': 'bestaudio/best',
+                            'outtmpl': os.path.join('downloads', f'{vid_id}'),
+                            'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3', 'preferredquality': '192'}],
+                            'quiet': True,
+                            'no_warnings': True,
+                        }
+                        with legacy_ytdl.YoutubeDL(legacy_opts) as ydl_l:
+                            ydl_l.download([f'https://www.youtube.com/watch?v={vid_id}'])
+                        if os.path.exists(filepath):
+                            logger.info('Legacy youtube_dl fallback succeeded')
+                            return filepath
+                    except Exception as ly_e:
+                        logger.warning(f'Legacy youtube_dl fallback failed: {ly_e}')
+                except Exception:
+                    # youtube_dl not installed or import failed - ignore
+                    pass
                 # Fallback: search for other videos with the same title and try them
                 try:
-                    if info and info.get('title'):
+                    if info and isinstance(info, dict) and info.get('title'):
                         title = info.get('title')
                         search = VideosSearch(title, limit=self.fallback_search_limit)
                         results = (await search.next()).get('result', [])
