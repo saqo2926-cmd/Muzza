@@ -11,11 +11,27 @@ API_HASH = getenv("API_HASH", "f745cdd5ddb46cf841d6990048f52935")
 
 BOT_TOKEN = getenv("BOT_TOKEN", "8568049660:AAHZl3Wg5b-MTXBjhQbsn9MrP9cCKbWjgDs")
 
-# Полный URI для подключения к MongoDB (можно задать через переменную окружения MONGO_DB_URI)
-MONGO_DB_URI = getenv("MONGO_DB_URI", "mongodb://mongo:mkMgrOSKhPDCaZVjSGlSWbolcENfIdeD@mongodb.railway.internal:27017/armedmusic?authSource=admin")
+# MongoDB configuration - supports Railway environment variables
+# For Railway: Use MONGO_URL or construct from individual variables
+_mongo_user = getenv("MONGOUSER", getenv("MONGO_INITDB_ROOT_USERNAME", "mongo"))
+_mongo_pass = getenv("MONGOPASSWORD", getenv("MONGO_INITDB_ROOT_PASSWORD", ""))
+_mongo_host = getenv("MONGOHOST", getenv("RAILWAY_PRIVATE_DOMAIN", "mongodb.railway.internal"))
+_mongo_port = getenv("MONGOPORT", "27017")
+
+# Try to use MONGO_URL first, otherwise construct it
+if getenv("MONGO_URL"):
+    MONGO_DB_URI = getenv("MONGO_URL")
+elif getenv("MONGO_DB_URI"):
+    MONGO_DB_URI = getenv("MONGO_DB_URI")
+else:
+    # Construct MongoDB URI from components
+    if _mongo_pass:
+        MONGO_DB_URI = f"mongodb://{_mongo_user}:{_mongo_pass}@{_mongo_host}:{_mongo_port}/armedmusic?authSource=admin"
+    else:
+        MONGO_DB_URI = f"mongodb://{_mongo_host}:{_mongo_port}/armedmusic"
 
 # Имя базы данных (для твоего бота)
-MONGO_DB_NAME = "armedmusic"
+MONGO_DB_NAME = getenv("MONGO_DB_NAME", "armedmusic")
 
 YTPROXY_URL = getenv("YTPROXY_URL", None)
 YOUTUBE_PROXY = getenv("YOUTUBE_PROXY", None)

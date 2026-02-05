@@ -21,10 +21,10 @@ pyyaml
 requests
 speedtest-cli
 spotipy
-pymongo==3.12.0
-# NOTE: If you observe 'IndexError: pop from an empty deque' coming from pymongo's connection pool,
-#       consider upgrading pymongo and motor to more recent compatible versions (e.g. pymongo>=4.3, motor>=3.1).
-#       Test the connection locally with `python3 scripts/check_mongo.py` before deploying.
+pymongo>=4.6.0
+motor>=3.3.0
+# These versions fix the 'IndexError: pop from an empty deque' connection pool issue
+# and provide better reliability for async MongoDB operations
 tgcrypto;sys_platform != "win32"
 unidecode
 uvloop;sys_platform != "win32"

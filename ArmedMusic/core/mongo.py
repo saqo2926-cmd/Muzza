@@ -1,30 +1,81 @@
 from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo import MongoClient
-from pymongo.errors import OperationFailure
+from pymongo.errors import OperationFailure, ServerSelectionTimeoutError
 from config import MONGO_DB_URI, MONGO_DB_NAME
 from ..logging import LOGGER
-LOGGER(__name__).info('Connecting to your Mongo Database...')
-try:
-    # Quick synchronous check to fail fast on authentication or network issues
-    sync_client = MongoClient(MONGO_DB_URI, serverSelectionTimeoutMS=5000)
-    try:
-        # Ping and a simple authenticated list to ensure credentials are valid
-        sync_client.admin.command('ping')  # may raise OperationFailure on bad creds
-        # listing database names forces auth verification in some deployments
-        _ = sync_client.list_database_names()
-    except OperationFailure as auth_err:
-        LOGGER(__name__).error('MongoDB authentication failed. Please check your MONGO_DB_URI and credentials.\nError: %s', auth_err)
-        exit(1)
+import time
 
-    # Create async client (motor will attempt connection lazily)
-    _mongo_async_ = AsyncIOMotorClient(MONGO_DB_URI, serverSelectionTimeoutMS=5000)
-    # Use configured database name instead of a hardcoded attribute
-    mongodb = _mongo_async_[MONGO_DB_NAME]
-    LOGGER(__name__).info('MongoDB client created and authenticated successfully.')
-except IndexError as ie:
-    # This can happen with older pymongo versions in multithreaded pools.
-    LOGGER(__name__).error('MongoDB connection pool IndexError: %s. Consider upgrading pymongo and motor to recent versions.', ie)
-    exit(1)
+logger = LOGGER(__name__)
+
+def _connect_mongodb_with_retry(max_retries=3, initial_delay=2):
+    """Connect to MongoDB with retry logic for transient failures."""
+    logger.info('Connecting to MongoDB database...')
+    logger.info(f'Using database: {MONGO_DB_NAME}')
+    
+    for attempt in range(1, max_retries + 1):
+        try:
+            logger.info(f'Connection attempt {attempt}/{max_retries}...')
+            
+            # Quick synchronous check with longer timeout
+            sync_client = MongoClient(MONGO_DB_URI, serverSelectionTimeoutMS=10000, connectTimeoutMS=10000)
+            
+            # Ping to verify connection and authentication
+            sync_client.admin.command('ping')
+            logger.info('✓ MongoDB ping successful')
+            
+            # List databases to verify authentication
+            dbs = sync_client.list_database_names()
+            logger.info(f'✓ Authentication successful. Found {len(dbs)} database(s)')
+            
+            sync_client.close()
+            
+            # Create async client (motor will use connection pool)
+            async_client = AsyncIOMotorClient(
+                MONGO_DB_URI,
+                serverSelectionTimeoutMS=10000,
+                connectTimeoutMS=10000,
+                retryWrites=True
+            )
+            
+            mongodb = async_client[MONGO_DB_NAME]
+            logger.info('✓ MongoDB async client created successfully')
+            
+            return mongodb
+            
+        except OperationFailure as auth_err:
+            logger.error(f'MongoDB authentication failed: {auth_err}')
+            if attempt < max_retries:
+                wait_time = initial_delay * (2 ** (attempt - 1))
+                logger.warning(f'Retrying in {wait_time}s...')
+                time.sleep(wait_time)
+            else:
+                logger.error('MongoDB authentication failed after all retries. Check MONGO_DB_URI and credentials.')
+                raise
+                
+        except ServerSelectionTimeoutError as timeout_err:
+            logger.error(f'MongoDB server selection timeout: {timeout_err}')
+            if attempt < max_retries:
+                wait_time = initial_delay * (2 ** (attempt - 1))
+                logger.warning(f'Retrying in {wait_time}s...')
+                time.sleep(wait_time)
+            else:
+                logger.error('MongoDB connection timeout after all retries. Check host and network connectivity.')
+                raise
+                
+        except Exception as e:
+            logger.error(f'MongoDB connection error: {type(e).__name__}: {e}')
+            if attempt < max_retries:
+                wait_time = initial_delay * (2 ** (attempt - 1))
+                logger.warning(f'Retrying in {wait_time}s...')
+                time.sleep(wait_time)
+            else:
+                raise
+
+try:
+    mongodb = _connect_mongodb_with_retry(max_retries=3, initial_delay=2)
+    logger.info('MongoDB connection initialized successfully')
+    
 except Exception as e:
-    LOGGER(__name__).error(f'Failed to initialize MongoDB client: {e}')
+    logger.critical(f'Failed to initialize MongoDB client: {e}')
+    logger.critical('Application cannot start without MongoDB connection')
     exit(1)
