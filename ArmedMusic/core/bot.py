@@ -1,6 +1,6 @@
 from pyrogram import Client, errors
-from pyrogram.enums import ChatMemberStatus, ParseMode, BotCommandScope
-from pyrogram.types import BotCommand
+from pyrogram.enums import ChatMemberStatus, ParseMode
+from pyrogram.types import BotCommand, BotCommandScopeDefault, BotCommandScopeAllGroupChats
 import config
 from ..logging import LOGGER
 
@@ -40,11 +40,11 @@ class Anony(Client):
         try:
             await self.set_bot_commands(
                 commands=private_commands,
-                scope=BotCommandScope('private')
+                scope=BotCommandScopeDefault()
             )
             await self.set_bot_commands(
                 commands=group_commands,
-                scope=BotCommandScope('group')
+                scope=BotCommandScopeAllGroupChats()
             )
             LOGGER(__name__).info('Bot commands configured successfully')
         except Exception as e:
